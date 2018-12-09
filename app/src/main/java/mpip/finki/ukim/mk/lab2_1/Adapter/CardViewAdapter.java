@@ -62,4 +62,11 @@ public class CardViewAdapter extends RecyclerView.Adapter<CardItemViewHolder> {
         this.data  = data;
         notifyDataSetChanged();
     }
+
+    public void addImages(List<Movie> movies){
+        for(Movie m :movies){
+            data.add(m);
+        }
+        notifyDataSetChanged();
+    }
 }

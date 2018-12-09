@@ -19,7 +19,7 @@ public interface MovieDao {
     @Query("SELECT * FROM Movies c ORDER BY c.title")
     List<Movie> getAllSync();
 
-    @Query("SELECT * FROM Movies c ORDER BY c.title")
+    @Query("SELECT * FROM Movies")
     LiveData<List<Movie>> getAll();
 
     //nov metod za prikaz Details

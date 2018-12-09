@@ -3,6 +3,7 @@ package mpip.finki.ukim.mk.lab2_1;
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -53,6 +54,12 @@ public class MainActivity extends AppCompatActivity {
 
     List<Movie> movies;
     Logger logger;
+
+    //Variables for paggination
+    private int page_num=1;
+    private boolean isLoading=true;
+    private int pastVisibleItems,visibleItemCount,totalItemCount,previous_total=0;
+    private int view_treshold=10;
 
 
     @Override
@@ -128,6 +135,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bindEvents(){
+
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -147,13 +155,43 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                visibleItemCount=linearLayoutManager.getChildCount();
+                totalItemCount=linearLayoutManager.getItemCount();
+                pastVisibleItems=linearLayoutManager.findLastVisibleItemPosition();
+
+                if(dy>0){
+                    if(isLoading){
+                        if(totalItemCount>previous_total){
+                            isLoading=false;
+                            previous_total=totalItemCount;
+                        }
+                        if(!isLoading&&(totalItemCount-visibleItemCount)<=(pastVisibleItems+view_treshold)){
+                            page_num++;
+                            performPaggination();
+                            isLoading=true;
+                        }
+                    }
+                }
+            }
+        });
+
     }
 
     public void search(String search){
+        progressBar.setVisibility(View.VISIBLE);
+
+        page_num=1;
+        isLoading=true;
+        pastVisibleItems=0;visibleItemCount=0;totalItemCount=0;previous_total=0;
+
         logger.log(Level.INFO,"search:"+search);
         MovieApiInterface api;
         api=retrofit.create(MovieApiInterface.class);
-       api.getMovies(search).enqueue(new Callback<MovieList>() {
+       api.getMovies(search,page_num).enqueue(new Callback<MovieList>() {
             @Override
             public void onResponse(Call<MovieList> call, Response<MovieList> response) {
                 if(response.isSuccessful()){
@@ -191,11 +229,43 @@ public class MainActivity extends AppCompatActivity {
             public void onChanged(@Nullable List<Movie> items) {
                 if (items == null || items.size() == 0) {
                    // search(searchText);
+                    progressBar.setVisibility(View.GONE);
                 } else {
                     cardViewAdapter.updateData(items);
+                    progressBar.setVisibility(View.GONE);
                     //Toast.makeText(MainActivity.this,"Synced",Toast.LENGTH_LONG).show();
 
                 }
+            }
+        });
+
+    }
+    public void performPaggination(){
+        progressBar.setVisibility(View.VISIBLE);
+
+        logger.log(Level.INFO,"search:"+searchString);
+        MovieApiInterface api;
+        api=retrofit.create(MovieApiInterface.class);
+        api.getMovies(searchString,page_num).enqueue(new Callback<MovieList>() {
+            @Override
+            public void onResponse(Call<MovieList> call, Response<MovieList> response) {
+                if(response.isSuccessful()){
+                    movies.addAll(response.body().getMovies());
+                    //movieItemRepository.deleteAll();
+                    for(Movie m : movies){
+                        movieItemRepository.insertItem(m);
+                    }
+                    Toast.makeText(MainActivity.this,"page: "+page_num,Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    Toast.makeText(MainActivity.this,"There are no more images...",Toast.LENGTH_SHORT).show();
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<MovieList> call, Throwable t) {
+                Toast.makeText(getApplicationContext(),t.getMessage(),Toast.LENGTH_LONG).show();
             }
         });
 
