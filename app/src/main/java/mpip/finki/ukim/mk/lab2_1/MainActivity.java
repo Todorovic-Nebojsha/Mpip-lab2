@@ -2,12 +2,19 @@ package mpip.finki.ukim.mk.lab2_1;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
+import android.content.Intent;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -15,6 +22,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import mpip.finki.ukim.mk.lab2_1.Adapter.CardViewAdapter;
 import mpip.finki.ukim.mk.lab2_1.Model.Movie;
 import mpip.finki.ukim.mk.lab2_1.Model.MovieList;
 
@@ -29,10 +37,17 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity {
     Retrofit retrofit;
     MovieItemRepository movieItemRepository;
-    MovieApiInterface api;
-    List<Movie> movies;
-    ListView myListView;
 
+    private String searchString;
+    private ProgressBar progressBar;
+    private FloatingActionButton fab = null;
+
+    CardViewAdapter cardViewAdapter;
+    RecyclerView recyclerView;
+    LinearLayoutManager linearLayoutManager;
+
+    List<Movie> movies;
+    Logger logger;
 
 
     @Override
@@ -40,33 +55,62 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        myListView=(ListView) findViewById(R.id.listView);
-
-
-        Logger logger=Logger.getLogger(MainActivity.class.getName());
-
-
+        logger=Logger.getLogger(MainActivity.class.getName());
         movies=new ArrayList<>();
+
+
         retrofit=new Retrofit.Builder()
                 .baseUrl(MovieApiInterface.Base_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
-        api=retrofit.create(MovieApiInterface.class);
+
 
         movieItemRepository=new MovieItemRepository(MainActivity.this);
+        initViews();
 
-        initList("Fast");
+        //movieItemRepository.deleteAll();  //proverka sto ke se desi ako e baza prazna
+        initList();
+
+        bindEvents();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
 
     }
 
 
+    private void initViews() {
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+        progressBar = findViewById(R.id.progressBar);
+        fab = findViewById(R.id.fab);
+    }
 
+    private void bindEvents(){
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                Intent intent = new Intent(CardViewActivity.this,DownloadFlickrItemsService.class);
+//                intent.putExtra(getString(R.string.download_flickr_tag),"ФИНКИ");
+//                CardViewActivity.this.startService(
+//                        intent);
+//                Snackbar.make(view, "Syncing", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+                // search proba
+                search("Lord");
+            }
+        });
+
+    }
 
     public void search(String search){
-        Call<MovieList> call=api.getMovies(search);
-        //logger.log(Level.INFO,"Created");
-        call.enqueue(new Callback<MovieList>() {
+        logger.log(Level.INFO,"search:"+search);
+        MovieApiInterface api;
+        api=retrofit.create(MovieApiInterface.class);
+       api.getMovies(search).enqueue(new Callback<MovieList>() {
             @Override
             public void onResponse(Call<MovieList> call, Response<MovieList> response) {
                 if(response.isSuccessful()){
@@ -78,38 +122,35 @@ public class MainActivity extends AppCompatActivity {
 
                 }
 
-
-
-
             }
 
             @Override
             public void onFailure(Call<MovieList> call, Throwable t) {
-                Toast.makeText(getApplicationContext(),t.getMessage(),Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(),t.getMessage(),Toast.LENGTH_LONG).show();
             }
         });
+
+
     }
 
-    public void initList(String search){
+    public void initList(){
+        recyclerView = findViewById(R.id.recyclerView);
+        cardViewAdapter=new CardViewAdapter(MainActivity.this,movies);
+        linearLayoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(linearLayoutManager);
+        recyclerView.setAdapter(cardViewAdapter);
+
+
         LiveData<List<Movie>> ldItems = movieItemRepository.listAllMovieItems();
 
         ldItems.observe(MainActivity.this, new Observer<List<Movie>>() {
             @Override
             public void onChanged(@Nullable List<Movie> items) {
                 if (items == null || items.size() == 0) {
-                    search("Fast");
+                   // search(searchText);
                 } else {
-                    //cardViewAdapter.updateData(items);
-                    String [] titles=new String[items.size()];
-                    for(int i=0;i<items.size();i++){
-                        titles[i]=items.get(i).getTitle();
-                    }
-                    //Toast.makeText(getApplicationContext(),items.get(0).getType()+"",Toast.LENGTH_SHORT).show();
-                   myListView.setAdapter(new ArrayAdapter<String>(
-                           getApplicationContext(),
-                           android.R.layout.simple_expandable_list_item_1,
-                           titles
-                   ));
+                    cardViewAdapter.updateData(items);
+                    Toast.makeText(MainActivity.this,"Synced",Toast.LENGTH_LONG).show();
 
                 }
             }
