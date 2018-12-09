@@ -9,8 +9,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -41,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private String searchString;
     private ProgressBar progressBar;
     private FloatingActionButton fab = null;
+    private SearchView searchView = null;
 
     CardViewAdapter cardViewAdapter;
     RecyclerView recyclerView;
@@ -81,6 +85,27 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.action_bar_menu, menu);
+        // Get the SearchView and set the searchable configuration
+        searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                searchString=s;
+                search(s);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                return false;
+            }
+        });
+        return true;
+    }
 
     private void initViews() {
         Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
@@ -99,8 +124,13 @@ public class MainActivity extends AppCompatActivity {
 //                        intent);
 //                Snackbar.make(view, "Syncing", Snackbar.LENGTH_LONG)
 //                        .setAction("Action", null).show();
-                // search proba
-                search("Lord");
+                // search proba ovoj treba da bide refresh!!!
+                if(searchString!=null && searchString.length()>0){
+                    search(searchString);
+                }
+                else{
+                    Toast.makeText(MainActivity.this,"You have not made a search,you cannot sync!",Toast.LENGTH_LONG).show();
+                }
             }
         });
 
@@ -150,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
                    // search(searchText);
                 } else {
                     cardViewAdapter.updateData(items);
-                    Toast.makeText(MainActivity.this,"Synced",Toast.LENGTH_LONG).show();
+                    //Toast.makeText(MainActivity.this,"Synced",Toast.LENGTH_LONG).show();
 
                 }
             }
