@@ -16,7 +16,7 @@ public class MovieList {
     @Expose
     private String response;
 
-    public List<Movie> getMovie() {
+    public List<Movie> getMovies() {
         return movie;
     }
 
