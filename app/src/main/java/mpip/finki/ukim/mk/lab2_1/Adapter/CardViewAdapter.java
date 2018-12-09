@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Toast;
 
 
 import com.bumptech.glide.Glide;
@@ -15,6 +16,7 @@ import com.bumptech.glide.Glide;
 import java.util.List;
 
 import mpip.finki.ukim.mk.lab2_1.Model.Movie;
+import mpip.finki.ukim.mk.lab2_1.MovieDetailsActivity;
 import mpip.finki.ukim.mk.lab2_1.R;
 
 
@@ -41,11 +43,11 @@ public class CardViewAdapter extends RecyclerView.Adapter<CardItemViewHolder> {
     public void onBindViewHolder(@NonNull CardItemViewHolder cardItemViewHolder, int i) {
         Movie entity = data.get(i);
         cardItemViewHolder.bind(entity);
-//        cardItemViewHolder.getParent().setOnClickListener(v-> {
-//            Intent intent = new Intent(context,FlickrItemDetailsActivity.class);
-//            intent.putExtra(context.getString(R.string.str_extra_image_url),entity.getMedia().getPhotoUrl());
-//            context.startActivity(intent);
-//        });
+        cardItemViewHolder.getParent().setOnClickListener(v-> {
+            Intent intent = new Intent(context,MovieDetailsActivity.class);
+            intent.putExtra(Intent.EXTRA_TEXT,entity.getImdbId());
+            context.startActivity(intent);
+        });
     }
 
     @Override

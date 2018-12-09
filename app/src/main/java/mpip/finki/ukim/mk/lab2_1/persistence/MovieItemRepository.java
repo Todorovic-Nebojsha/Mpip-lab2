@@ -35,6 +35,10 @@ public class MovieItemRepository {
     public LiveData<List<Movie>> listAllMovieItems() {
         return movieItemDatabase.movieDao().getAll();
     }
+    //nov metod za prikaz Details
+    public LiveData<List<Movie>> getMoviesByImdbId(String imdbId){
+        return movieItemDatabase.movieDao().getMoviesByImdbId(imdbId);
+    }
 
     public List<Movie> listAllMovieItemsSync(){
         return  movieItemDatabase.movieDao().getAllSync();

@@ -22,6 +22,9 @@ public interface MovieDao {
     @Query("SELECT * FROM Movies c ORDER BY c.title")
     LiveData<List<Movie>> getAll();
 
+    //nov metod za prikaz Details
+    @Query("SELECT * From Movies c WHERE c.imdbID=:imdbId")
+    LiveData<List<Movie>> getMoviesByImdbId(String imdbId);
 
     @Query("DELETE from Movies")
     void deleteAll();
