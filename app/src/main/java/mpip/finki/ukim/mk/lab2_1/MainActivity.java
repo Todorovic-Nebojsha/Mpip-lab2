@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     LinearLayoutManager linearLayoutManager;
 
+    public Boolean noMovies=false;
     List<Movie> movies;
     Logger logger;
 
@@ -75,6 +76,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
 
         receiver=new UpdatedItemsBroadcastReceiver();
 
@@ -91,6 +94,9 @@ public class MainActivity extends AppCompatActivity {
 
 
         movieItemRepository=new MovieItemRepository(MainActivity.this);
+
+        movieItemRepository.deleteAll();
+
         initViews();
 
         //movieItemRepository.deleteAll();  //proverka sto ke se desi ako e baza prazna
@@ -153,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(searchString!=null && searchString.length()>0) {
+                if(searchString!=null && searchString.length()>0 && !noMovies) {
                     Intent intent = new Intent(MainActivity.this, DownloadMovieService.class);
                     intent.putExtra("search", searchString);
                     MainActivity.this.startService(
@@ -210,20 +216,29 @@ public class MainActivity extends AppCompatActivity {
        api.getMovies(search,page_num).enqueue(new Callback<MovieList>() {
             @Override
             public void onResponse(Call<MovieList> call, Response<MovieList> response) {
-                if(response.isSuccessful()){
-                    movies=response.body().getMovies();
-                    movieItemRepository.deleteAll();
-                    for(Movie m : movies){
-                        movieItemRepository.insertItem(m);
-                    }
+                movieItemRepository.deleteAll();
 
+                if(response.isSuccessful()){
+                    //if(response.body().getResponse()=="False")
+                    movies=response.body().getMovies();
+
+                    if(movies==null || movies.size()==0){
+                        Toast.makeText(getApplicationContext(),"No movies found for this search",Toast.LENGTH_SHORT).show();
+                        noMovies=true;
+                    }
+                    else {
+                        noMovies=false;
+                        for (Movie m : movies) {
+                            movieItemRepository.insertItem(m);
+                        }
+                    }
                 }
 
             }
 
             @Override
             public void onFailure(Call<MovieList> call, Throwable t) {
-                Toast.makeText(getApplicationContext(),t.getMessage(),Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(),t.getMessage(),Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -243,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
         ldItems.observe(MainActivity.this, new Observer<List<Movie>>() {
             @Override
             public void onChanged(@Nullable List<Movie> items) {
-                if (items == null || items.size() == 0) {
+                if (items == null ) {
                    // search(searchText);
                     progressBar.setVisibility(View.GONE);
                 } else {
@@ -259,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
     public void performPaggination(){
         progressBar.setVisibility(View.VISIBLE);
 
-        logger.log(Level.INFO,"search:"+searchString);
+        //logger.log(Level.INFO,"search:"+searchString);
         MovieApiInterface api;
         api=retrofit.create(MovieApiInterface.class);
         api.getMovies(searchString,page_num).enqueue(new Callback<MovieList>() {
@@ -268,10 +283,17 @@ public class MainActivity extends AppCompatActivity {
                 if(response.isSuccessful()){
                     movies.addAll(response.body().getMovies());
                     //movieItemRepository.deleteAll();
-                    for(Movie m : movies){
-                        movieItemRepository.insertItem(m);
+                    if(movies==null||movies.size()==0){
+                        noMovies=true;
+                        Toast.makeText(MainActivity.this, "There are no more movies...", Toast.LENGTH_SHORT).show();
                     }
-                    Toast.makeText(MainActivity.this,"page: "+page_num,Toast.LENGTH_SHORT).show();
+                    else {
+                        noMovies=false;
+                        for (Movie m : movies) {
+                            movieItemRepository.insertItem(m);
+                        }
+                        Toast.makeText(MainActivity.this, "page: " + page_num, Toast.LENGTH_SHORT).show();
+                    }
                 }
                 else{
                     Toast.makeText(MainActivity.this,"There are no more movies...",Toast.LENGTH_SHORT).show();
@@ -292,8 +314,13 @@ public class MainActivity extends AppCompatActivity {
             movieItemRepository.listAllMovieItems().observe(MainActivity.this, new Observer<List<Movie>>() {
                 @Override
                 public void onChanged(@Nullable List<Movie> flickrItems) {
-                    cardViewAdapter.updateData(flickrItems);
-                    Toast.makeText(MainActivity.this,"Synced",Toast.LENGTH_LONG).show();
+                    if(flickrItems!=null && flickrItems.size()>0) {
+                        cardViewAdapter.updateData(flickrItems);
+                        Toast.makeText(MainActivity.this, "Synced", Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "There are no movies found...", Toast.LENGTH_LONG).show();
+                    }
                 }
             });
         }

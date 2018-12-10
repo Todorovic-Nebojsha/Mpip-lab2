@@ -4,6 +4,7 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,10 +63,11 @@ public class DownloadMovieService extends IntentService {
             @Override
             public void onResponse(Call<MovieList> call, Response<MovieList> response) {
                 if(response.isSuccessful()){
-                    movieItemRepository.deleteAll();
-
-                    for(Movie m : response.body().getMovies()){
-                        movieItemRepository.insertItem(m);
+                    if(!(response.body().getMovies()!=null || response.body().getMovies().size()>0)) {
+                        movieItemRepository.deleteAll();
+                        for (Movie m : response.body().getMovies()) {
+                            movieItemRepository.insertItem(m);
+                        }
                     }
                     sendDatabaseUpdatedBroadcast();
                 }
@@ -74,7 +76,7 @@ public class DownloadMovieService extends IntentService {
 
             @Override
             public void onFailure(Call<MovieList> call, Throwable t) {
-                //Toast.makeText(getApplicationContext(),t.getMessage(),Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(),t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
